@@ -1,10 +1,9 @@
 package main
 
+import "dnsquery/console"
+import "dnsquery/actions"
 import "dnsquery/files"
-import "dnsquery/protocols/dns"
-import "fmt"
 import "os"
-import "slices"
 import "strings"
 
 func main() {
@@ -33,60 +32,15 @@ func main() {
 
 		for s := 0; s < len(subjects); s++ {
 
-			subject := subjects[s]
+			subject := strings.TrimSpace(subjects[s])
 
 			if subject != "" {
 
-				fmt.Println("/-- Resolving " + subject)
-
-				changed_subject := false
-				response, err := dns.Resolve(subject)
-
-				if err == nil && len(response.Answers) > 0 {
-
-					for a := 0; a < len(response.Answers); a++ {
-
-						record := response.Answers[a]
-
-						if record.Type == dns.TypeA {
-
-							domain := record.ToDomain()
-							ipv4 := record.ToIPv4()
-
-							if slices.Contains(hosts.Lookup(domain), ipv4) == false {
-								fmt.Println("|-> Adding IPv4 " + ipv4)
-								hosts.Add(domain, ipv4)
-								changed_subject = true
-							}
-
-						} else if record.Type == dns.TypeAAAA {
-
-							domain := record.ToDomain()
-							ipv6 := record.ToIPv6()
-
-							if slices.Contains(hosts.Lookup(domain), ipv6) == false {
-								fmt.Println("|-> Adding IPv6 " + ipv6)
-								hosts.Add(domain, ipv6)
-								changed_subject = true
-							}
-
-						} else if record.Type == dns.TypeCNAME {
-
-							// TODO: Lookup CNAME domain
-
-						}
-
-					}
-
-				}
+				changed_subject := actions.Resolve(&hosts, subject)
 
 				if changed_subject == true {
 					changed_hosts = true
-				} else {
-					fmt.Println("|-> Resolved IPs already cached")
 				}
-
-				fmt.Println("\\--")
 
 			}
 
@@ -94,23 +48,26 @@ func main() {
 
 		if changed_hosts == true {
 
-			fmt.Println("> Writing /etc/hosts")
-
 			if hosts.Write() == true {
+				console.Info("Write /etc/hosts")
 				result = true
 			} else {
-				fmt.Println("ERROR: Could not write /etc/hosts")
+				console.Error("Write /etc/hosts")
+				console.Error("ERROR: Could not write /etc/hosts")
 			}
 
 		} else {
+			console.Warn("Skip /etc/hosts")
 			result = true
 		}
 
 	}
 
 	if result == true {
+		console.Info("SUCCESS")
 		os.Exit(0)
 	} else {
+		console.Error("ERROR")
 		os.Exit(1)
 	}
 

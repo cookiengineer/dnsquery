@@ -37,7 +37,6 @@ dnsquery libgen.li;
 
 ## Work-in-Progress
 
-- [ ] Resolve `CNAME` responses
 - [ ] Support Windows and `C:\%WINDIR%\system32\etc\hosts` file path?
 
 
